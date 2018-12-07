@@ -18,9 +18,9 @@ public class dispatcher {
    float currentMaxLoadW;//计算机节点集合currentNodeArray中的最大负载权值
    float currentMeanLoadW;//计算机节点集合currentNodeArray中的平均负载权值
    
-   float currentMinRisk;//计算机节点集合currentNodeArray中的最小负载权值
-   float currentMaxRisk;//计算机节点集合currentNodeArray中的最大负载权值
-   float currentMeanRisk;//计算机节点集合currentNodeArray中的平均负载权值
+   float currentMinRisk;//计算机节点集合currentNodeArray中的最小风险
+   float currentMaxRisk;//计算机节点集合currentNodeArray中的最大风险
+   float currentMeanRisk;//计算机节点集合currentNodeArray中的平均风险
   
    //
  
