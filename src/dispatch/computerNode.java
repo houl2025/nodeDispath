@@ -7,10 +7,11 @@ package dispatch;
  *
  */ 
 public class computerNode {
-	public int NodeID; // 计算机节点的主键，  //进行调度前需要知道
+	public String ID; // 计算机节点的主键，  //进行调度前需要知道
 	public String IpAdress; //计算机节点的ip ，  //进行调度前需要知道
 	
 	//负载
+	public int cpu_Num=1;
    public float[]  Capability; //性能指标的数值 //进行调度前需要知道
    public float[]  Load;// 负载指标的数值  //进行调度前需要知道
     
@@ -18,6 +19,12 @@ public class computerNode {
    
    public float LoadW; // 负载权值
     public float LoadD; // 负载差值
+    
+    public float Capa; // 节点性能Capa
+    public float Loa;//节点负载Loa
+    public float LoadWMax=0;//负载权值的最大值
+    
+    
     
    // 节点风险相关的信息
    public float validAttackNum ; //被记录的有效攻击次数  //进行调度前需要知道
@@ -32,16 +39,31 @@ public class computerNode {
    //
    public int orderValue; //计算机节点的在整个节点集群中的序号， //可能暂时用不到
    
+   
+   public float[] AttributeVector;
+   public float[] AttributeWeight;
+   
+   public int chooseflag=0; //
+   public int primeClusterIndex=0;
+   
+   
    public  void showNodeInfo(){
 	   
+	   
 	   System.out.println("______________________________");
-	   System.out.println("Id:"+""+ NodeID);
+	   System.out.println("Id:"+""+ ID);
+	   System.out.println("cpu_Num:"+cpu_Num);
+	   
 	   System.out.println("Capability");
 	   show(Capability);
 	   System.out.println("Load");
 	   show(Load);
+	   
+	   System.out.println("LoadD:"+LoadD);
+	   System.out.println("LoadW:"+LoadW);
 	   System.out.println("validAttackNum:"+validAttackNum);
 	   System.out.println("totalVisitNum:"+totalVisitNum);
+	   System.out.println("risk:"+risk);
 	   System.out.println(" AttributeType");
 	   show(AttributeType);
 	   System.out.println("HeteroAttribute");
@@ -70,5 +92,31 @@ public class computerNode {
 	  
 	 System.out.println(" ");
    }
+   
+   public  computerNode copyValue(String Id){
+	   computerNode cn=new  computerNode();
+	   cn.ID=Id;
+	   cn.IpAdress=this.IpAdress;
+	   int len=AttributeVector.length;
+	   float []vec=new float[len];
+	   float[] ww=new float[len];
+	   for(int i=0;i<AttributeVector.length;i++){
+		   vec[i]=this.AttributeVector[i];
+		   ww[i]=this.AttributeWeight[i];
+	   }
+	   cn.AttributeVector=vec;
+	   cn.AttributeWeight=ww;
+	   return cn;
+   }
+   
+   public static float distance(computerNode cn1, computerNode cn2){
+	   float d=0;
+	   for(int s=0;s<cn1.AttributeVector.length;s++){
+		   d=d+cn1.AttributeWeight[s]*cn1.AttributeWeight[s]*(cn1.AttributeVector[s]-cn2.AttributeVector[s])*(cn1.AttributeVector[s]-cn2.AttributeVector[s]);
+	   }
+	   d=(float) Math.sqrt(d);
+	   return d;
+   }
+   
    
 }
