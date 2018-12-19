@@ -110,9 +110,9 @@ public class weightKMean {
 	        		k = dataSetLength;  
 	        	}  
 	        	System.out.println("k="+k);
-	        initPrimeCluster();
-	        System.out.println("primeCluster.size="+this.primeCluster.size());
-	        System.out.println("initCenterFromPrimeCluster>>>>");
+	         initPrimeCluster();
+	         System.out.println("primeCluster.size="+this.primeCluster.size());
+	         System.out.println("initCenterFromPrimeCluster>>>>");
 	        	center = initCenterFromPrimeCluster();  
 	        	//center = initCenters();
 	        	System.out.println("initCluster>>>>");
@@ -371,6 +371,7 @@ public class weightKMean {
 	            cluster = initCluster();  
 	        }  
 	        
+	        clusterSet(); 
 	        System.out.println("itetator："+i);
 	    } 
 	   
@@ -386,8 +387,11 @@ public class weightKMean {
 	   
 	   public List<String> getIDFromClusterCenter(){
 		   List<String> R=new ArrayList<String>();
-		  
-
+		   if(this.center==null || this.center.size()<1){
+			   return null;
+		   }
+		       
+		     // clusterSet();
 			   for(int i=0;i<center.size();i++){
 				   ArrayList<computerNode> A;
 				  

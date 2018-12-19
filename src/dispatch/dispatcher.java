@@ -29,8 +29,10 @@ public class dispatcher {
 	
 	public boolean needLoadStatus=true;//是否需要考虑负载
 	
-   float riskThreshold;// 风险阈值，用于第一步筛选，将风险较高的节点从候选集合中筛除
-   float LoadThreshold;//负载权值阈值， 用于第二步筛选，将负载权值过大的节点从候选集合中筛除
+	float riskTolerance=(float) 0.8;//用于判断候选集合中元素的风险值低于此值的元素个数，如果元素个数多于需要的
+   float riskThreshold=(float) 0.9;// 风险阈值，用于第一步筛选，将风险较高的元素从候选集合中筛除
+   
+   float LoadPercent=(float) 0.8;//用于第二步筛选，根据负载权值，将候选集合中的元素从小到大排列，选出前 80%的元素作为下一步的候选集合
    
    List<float[]>  HeteroAttributeWeight; //异构相关属性的的权值
    
@@ -96,12 +98,79 @@ public class dispatcher {
 		}
 		//int [] NODEID=adispatcher.getHeteroNodes(NeedNum);
 		
-		//
-		
-
-		
 
 	}
+	
+	public  List <computerNode> chooseNodeByRisk( int NodeNum,float p1,float p2){//p1为风险可容忍值,p2为选取节点的风险阈值
+		List <computerNode> NodeArray=new ArrayList<>();
+		int i=0;
+		for(int j=0;j<currentNodeArray.size();j++) {
+			
+			//i<currentNodeArray.size();
+			if (currentNodeArray.get(j).risk<p1){
+				i++;
+			}
+			
+		}//计算风险值小于p1的节点数目
+		
+		if (i<NodeNum) {//若风险值小于p1的节点个数小于需要选取的节点请求个数，则跳过；否则筛选
+			NodeArray=currentNodeArray;
+		}
+		//直接跳过风险评估部分，节点池中全部节点进入负载计算；
+		else {
+			for(int j=0;j<currentNodeArray.size();j++) {
+				if (currentNodeArray.get(j).risk<p2){
+					NodeArray.add(currentNodeArray.get(j));
+				}
+			}
+		}
+	  //把这个风险小于p2的节点集合传给下一步负载。
+	
+		return NodeArray;
+	}
+	
+	
+	public List <computerNode> chooseNodeByLoadW( float p,int NodeNum){//p是负载部分提取节点的比例
+		List <computerNode> NodeArray=null;
+		
+		computerNode temp=null;
+		
+		int size = currentNodeArray.size();
+		
+		for(int i=0;i<size-1;i++)
+		{
+			for(int j=0;j<size-1-i;j++)
+			{
+					if(currentNodeArray.get(j).LoadW>currentNodeArray.get(j+1).LoadW){//交换两数位置，负载较小的往前排
+						temp = currentNodeArray.get(j);
+						currentNodeArray.set(j, currentNodeArray.get(j+1));
+						currentNodeArray.set(j+1, temp);
+				 
+					}
+					
+				}
+					
+			}
+		
+		 	if (currentNodeArray.size()*p<NodeNum) {//;//需要定义节点请求个数
+			 	NodeArray=currentNodeArray;
+		  	}//直接跳过负载部分，节点池中全部节点进入异构部分计算；
+		 	else {
+		 		NodeArray=new ArrayList<>();
+			 	for(int j=0;j<currentNodeArray.size()*p;j++) {
+			 		NodeArray.add(currentNodeArray.get(j));	
+		     	}
+		 	}
+		 	
+		 	return NodeArray;
+		
+		}
+	
+	
+			
+	
+	
+	
 	
 	public  dispatcher( List <computerNode> NodeArray){
 		currentNodeArray=NodeArray;
@@ -186,51 +255,17 @@ public class dispatcher {
 		 return cN;
 	}
 	
-	/**
-	 * 
-	 * 
-	 * @param LeastNum 返回的数组元素个数尽量不小于 LeastNum；
-	 * @return 风险值小于风险阈值的节点组成的集合
-	 */
-	public  List <computerNode> chooseNodeByRisk( int NodeNum){
-		List <computerNode> NodeArray=new ArrayList<>();
-		int i=0;
-		for(int j=0;j<currentNodeArray.size();j++) {
-			
-			//i<currentNodeArray.size();
-			if (currentNodeArray.get(j).risk<0.8){
-				
-			}
-			i++;
-		}
-		
-		if (i<NodeNum) {//;//需要定义节点请求个数
-			 NodeArray=currentNodeArray;
-		}
-		//直接跳过风险评估部分，节点池中全部节点进入负载计算；
-		else {
-			
-			for(int j=0;j<currentNodeArray.size();j++) {
-				if (currentNodeArray.get(j).risk<0.9){
-					NodeArray.add(currentNodeArray.get(j));
-				}
-			}
-			
-		}
-				
-				//把这个风险小于0.9的节点集合传给下一步负载。
-		                                
-		
-		//List <computerNode> NodeArray=null;
-		return NodeArray;
-	}
 	
-	public void getLoadW(float []k){
+	
+	
+	
+	
+	public void setLoadValues(float []k){
 		   for(int j=0;j<currentNodeArray.size();j++) {
 			   computerNode cn=currentNodeArray.get(j);
 		      float[] Capability=cn.Capability;
 		      float CNode = k[0]*Capability[0]*cn.cpu_Num;
-		 
+		      //computerNode ln=currentNodeArray.get(0);
 			   float[] Load=cn.Load;
 			   float LNode=0;
 			   for(int i=1;i<Capability.length;i++)
@@ -245,15 +280,32 @@ public class dispatcher {
 		      cn.Capa=CNode;
 			   cn.Loa=LNode;
 			   cn.LoadW=cn.Loa/cn.Capa;  
-			   System.out.println(j+"*"+cn.LoadW+":"+ cn.Capa);
+			   System.out.println("LoadW:"+j+"*"+cn.LoadW+":"+ cn.Capa);
 		   }
+		   
 		   float max=-1;
+		   float min=-Float.MAX_VALUE;
+		   float mean=0;
+		   int len=currentNodeArray.size();
 		   for(int j=0;j<currentNodeArray.size();j++) {
 			   computerNode cn =currentNodeArray.get(j);
 			   if( cn.LoadW>max) {
 				   max=cn.LoadW;
 			   }
+			   
+			   if( cn.LoadW<min) {
+				   min=cn.LoadW;
+			   }
+			   mean=mean+ cn.LoadW;
+					   
 		   }
+		   if(len>0){
+			   mean=mean/len;
+		   }
+		   this.currentMaxLoadW=max;
+		   this.currentMeanLoadW=mean;
+		   this.currentMinLoadW=min;
+		   
 		   for(int j=0;j<currentNodeArray.size();j++) {
 			  computerNode cn =currentNodeArray.get(j);
 			  float LoadD=(max-cn.LoadW)*cn.Capa;
@@ -266,71 +318,9 @@ public class dispatcher {
 		}
 		
 	
-	/**
-	 * 
-	 * @param wThreshold 负载权重阈值
-	 * @param LeastNum 返回的数组元素个数尽量不小于 LeastNum；
-	 * @return 风险值小于风险阈值的节点组成的集合
-	 */
-	public void orderNodeByLoadW( float wThreshold,int LeastNum){
-		List <computerNode> NodeArray=null;
-		//List<computerNode> currentNodeArray=
-		computerNode temp=null;
-		int size = currentNodeArray.size();
-		for(int i=0;i<size-1;i++)
-		{
-			for(int j=0;j<size-1-i;j++)
-			{
-				if(currentNodeArray.get(j).LoadW>currentNodeArray.get(j+1).LoadW){//交换两数位置，负载较小的往前排
-					temp = currentNodeArray.get(j);
-					currentNodeArray.set(j, currentNodeArray.get(j+1));
-					currentNodeArray.set(j+1, temp);
-				
-				}
-					
-				}
-					
-			}
-		}
-	
-	
-	 public float getMaxRisk() {
-		   
-		   
-		   for(int i=0;i<this.currentNodeArray.size();i++) {
-			  
-				computerNode cn=currentNodeArray.get(i);
-				cn.risk=cn.validAttackNum/cn.totalVisitNum;
-		     
-		   }
-		   float max=Float.MIN_VALUE;
-		   computerNode 	acn;
-		   for(int i=0;i<this.currentNodeArray.size();i++) {
-			   
-		   if (currentNodeArray.get(i).risk>max) {
-			   max=currentNodeArray.get(i).risk;
-			  
-		   }
-		  
-	   }
-		
-		return max;
- }
-	
 
 	
 	
-	
-	/**
-	 * 
-	 * @param wThreshold 负载权重阈值
-	 * @param LeastNum 返回的数组元素个数尽量不小于 LeastNum；
-	 * @return 风险值小于风险阈值的节点组成的集合
-	 */
-	public  List <computerNode> chooseNodeByLoadW( int LeastNum){
-		List <computerNode> NodeArray=null;
-		return NodeArray;
-	}
 	
 
 	
@@ -350,19 +340,7 @@ public class dispatcher {
 		return HA;
 	}
 	
-	/**
-	 * 距离公式,用于聚类
-	 * @param np1  
-	 * 
-	 * 
-	 * 
-	 * @param np2
-	 * @return
-	 */
-	public float distance(float[] np1,float[] np2,List<float[]> w){
-		float d=-1;
-		return d;
-	}
+	
 	/**
 	 * 
 	 * @param s 
@@ -799,7 +777,7 @@ public class dispatcher {
     		System.out.println("HeteroAttributeWeight:");
         	for(int i=0;i<this.HeteroAttributeWeight.size();i++){
         		float[] vv=this.HeteroAttributeWeight.get(0);
-        		System.out.println("index:"+i);
+        		
         		for(int j=0;j<vv.length;j++){
         			System.out.print(vv[j]+"   ");
         		}
@@ -813,7 +791,8 @@ public class dispatcher {
     		System.out.println("HeteroAttribute:");
         	for(int i=0;i<this.HeteroAttribute.size();i++){
         		float[] vv=this.HeteroAttribute.get(i);
-        		System.out.println("index:"+i);
+        		System.out.println("index:"+i+" ID:"+this.currentNodeArray.get(i).ID);
+        		
         		for(int j=0;j<vv.length;j++){
         			System.out.print(vv[j]+"   ");
         		}
@@ -858,6 +837,43 @@ public class dispatcher {
 			}
 		}
 	  
+	  
+	  public void setRiskValues() {
+		   
+		   
+		   for(int i=0;i<this.currentNodeArray.size();i++) {
+			   
+				computerNode cn=currentNodeArray.get(i);
+				cn.risk=(float) (cn.validAttackNum/(cn.totalVisitNum+0.0001));
+		     
+		   }
+		   float max=Float.MIN_VALUE;
+		   float min=-Float.MAX_VALUE;
+		   float mean=0;
+		   computerNode 	acn;
+		   for(int i=0;i<this.currentNodeArray.size();i++) {
+			   
+			   if (currentNodeArray.get(i).risk>max) {
+				   max=currentNodeArray.get(i).risk;
+			  
+			   }
+			   if(currentNodeArray.get(i).risk<min){
+				   min=currentNodeArray.get(i).risk;
+			   }
+			   
+			   mean=mean+currentNodeArray.get(i).risk;
+		   }
+		
+		   if(this.currentNodeArray.size()>0){
+			   mean=mean/this.currentNodeArray.size();
+		   }
+		  this.currentMaxRisk=max;
+		  this.currentMeanRisk=min;
+		  this.currentMeanRisk=mean;
+  }
+	   
+	
+	
 	  public List<String> assignID(int NeedNum){
 	    	List<String> ids=null;
 	    	if(this.currentNodeArray==null){
@@ -868,10 +884,25 @@ public class dispatcher {
 	    		ids=new ArrayList<>();
 	    		
 	    	  if(this.needRisk){
+	    		  this.setRiskValues();
+	    		  float p1=this.riskTolerance;
+	    		  float p2=this.riskThreshold;
+	    		  
+	    		 List<computerNode> A= this.chooseNodeByRisk(NeedNum, p1, p2);
+	    		 System.out.println("NeedNum="+NeedNum+":p1="+p1+":p2="+p2);
+	    		 System.out.println("result 0f chooseByRisk:"+"A.size="+A.size());
+	    		 this.replaceNodeArray(A);
+	    		  
 	    		  
 	    	  }
 	    	  if(this.needLoadStatus){
-	    		  
+	    		  float []k=this.default_k_Ratio;
+	    		  this.setLoadValues(k);
+	    		  float p=this.LoadPercent;
+	    		  List<computerNode> A=this.chooseNodeByLoadW(p, NeedNum);
+	    		  System.out.println("NeedNum="+NeedNum+":p="+p);
+		    	  System.out.println("result 0f chooseByLoadW:"+"A.size="+A.size());
+	    		  this.replaceNodeArray(A);
 	    	  }
 	    		HashMap <String , List<float[]>>NodeInfoMap=(HashMap<String, List<float[]>>) vectorTransform();
 	    		//调用实例方法，得到需要的结果
@@ -886,9 +917,14 @@ public class dispatcher {
 	    			KMC.setDataSet(currentNodeArray);
 	    			KMC.kmeans();
 	    			ids=KMC.getIDFromClusterCenter();
-	    			for(int s=0;s<ids.size();s++){
-	        			System.out.println(ids.get(s));
-	        		}
+	    			if(ids!=null){
+	    				for(int s=0;s<ids.size();s++){
+		        			System.out.println(ids.get(s));
+		        		}
+	    			}else{
+	    				System.out.println("error in kmeans");
+	    			}
+	    		
 	    			
 	    			
 	    		}else{
