@@ -983,5 +983,16 @@ public class dispatcher {
 	    }
 	    
 	    
-	
+	public void showCompterNodeList(){
+		if(this.currentNodeArray==null){
+			System.out.println("currentNodeArray==null");
+		}else{
+			System.out.println("currentNodeArray.size="+currentNodeArray.size());
+			for(int i=0;i<this.currentNodeArray.size();i++){
+				this.currentNodeArray.get(i).showNodeInfo();
+			}
+		}
+		
+		
+	}
 }

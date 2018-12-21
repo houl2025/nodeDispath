@@ -29,28 +29,28 @@ public class nodeInfo {
             SigarUtils s = new SigarUtils();
             s.initSigar();
             // System信息，从jvm获取
-            property();
+           // property();
             System.out.println("----------------------------------");
             // cpu信息
-            cpu();
+          //  cpu();
             System.out.println("----------------------------------");
             // 内存信息
-            memory();
+           // memory();
             System.out.println("----------------------------------");
             // 操作系统信息
-            os();
+          //  os();
             System.out.println("----------------------------------");
             // 用户信息
-            who();
+          //  who();
             System.out.println("----------------------------------");
             // 文件系统信息
-            file();
+           // file();
             System.out.println("----------------------------------");
             // 网络信息
             net();
             System.out.println("----------------------------------");
             // 以太网信息
-            ethernet();
+           // ethernet();
             System.out.println("----------------------------------");
         } catch (Exception e1) {
             e1.printStackTrace();
@@ -243,6 +243,10 @@ public class nodeInfo {
     private static void net() throws Exception {
         Sigar sigar = new Sigar();
         String ifNames[] = sigar.getNetInterfaceList();
+        float [] firstN=new float[2];
+        float[] endN=new float[2];
+        float[]v;
+        long time=10000;
         for (int i = 0; i < ifNames.length; i++) {
             String name = ifNames[i];
             NetInterfaceConfig ifconfig = sigar.getNetInterfaceConfig(name);
@@ -252,19 +256,71 @@ public class nodeInfo {
             if ((ifconfig.getFlags() & 1L) <= 0L) {
                 System.out.println("!IFF_UP...skipping getNetInterfaceStat");
                 continue;
-            }
+                }
             NetInterfaceStat ifstat = sigar.getNetInterfaceStat(name);
             System.out.println(name + "接收的总包裹数:" + ifstat.getRxPackets());// 接收的总包裹数
             System.out.println(name + "发送的总包裹数:" + ifstat.getTxPackets());// 发送的总包裹数
+            
+            v=getRxAndTXBytes(ifstat);
+            firstN[0]=firstN[0]+v[0];
+            firstN[1]=firstN[1]+v[1];
             System.out.println(name + "接收到的总字节数:" + ifstat.getRxBytes());// 接收到的总字节数
             System.out.println(name + "发送的总字节数:" + ifstat.getTxBytes());// 发送的总字节数
+            
             System.out.println(name + "接收到的错误包数:" + ifstat.getRxErrors());// 接收到的错误包数
             System.out.println(name + "发送数据包时的错误数:" + ifstat.getTxErrors());// 发送数据包时的错误数
+            
             System.out.println(name + "接收时丢弃的包数:" + ifstat.getRxDropped());// 接收时丢弃的包数
-            System.out.println(name + "发送时丢弃的包数:" + ifstat.getTxDropped());// 发送时丢弃的包数
+            System.out.println(name + "发送时丢弃的包数:" + ifstat.getTxDropped()); // 发送时丢弃的包数
+           
         }
+           Thread.sleep(time);
+           
+           for (int i = 0; i < ifNames.length; i++) {
+               String name = ifNames[i];
+               NetInterfaceConfig ifconfig = sigar.getNetInterfaceConfig(name);
+               System.out.println("网络设备名:    " + name);// 网络设备名
+               System.out.println("IP地址:    " + ifconfig.getAddress());// IP地址
+               System.out.println("子网掩码:    " + ifconfig.getNetmask());// 子网掩码
+               if ((ifconfig.getFlags() & 1L) <= 0L) {
+                   System.out.println("!IFF_UP...skipping getNetInterfaceStat");
+                   continue;
+                   }
+               NetInterfaceStat ifstat = sigar.getNetInterfaceStat(name);
+               System.out.println(name + "接收的总包裹数:" + ifstat.getRxPackets());// 接收的总包裹数
+               System.out.println(name + "发送的总包裹数:" + ifstat.getTxPackets());// 发送的总包裹数
+               
+               v=getRxAndTXBytes(ifstat);
+               endN[0]=endN[0]+v[0];
+               endN[1]=endN[1]+v[1];
+               System.out.println(name + "接收到的总字节数:" + ifstat.getRxBytes());// 接收到的总字节数
+               System.out.println(name + "发送的总字节数:" + ifstat.getTxBytes());// 发送的总字节数
+               
+               System.out.println(name + "接收到的错误包数:" + ifstat.getRxErrors());// 接收到的错误包数
+               System.out.println(name + "发送数据包时的错误数:" + ifstat.getTxErrors());// 发送数据包时的错误数
+               
+               System.out.println(name + "接收时丢弃的包数:" + ifstat.getRxDropped());// 接收时丢弃的包数
+               System.out.println(name + "发送时丢弃的包数:" + ifstat.getTxDropped()); // 发送时丢弃的包数
+              
+           }
+           
+           System.out.println("fSumRx="+firstN[0]);
+           System.out.println("fSumTx="+firstN[1]);
+           System.out.println("eSumRx="+endN[0]);
+           System.out.println("eSumTx="+endN[1]);
+           float d=endN[1]+endN[0]-firstN[0]-firstN[1];
+           d=8*d/time;
+           d=d/1000;
+           System.out.println("网络速率="+d);
+           
+           
     }
-
+    public static float[] getRxAndTXBytes(NetInterfaceStat ifstat){
+      float[] V=new float[2];
+      V[0]= ifstat.getRxBytes();
+      V[1]=ifstat.getTxBytes();
+    	return V;
+    }
     private static void ethernet() throws SigarException {
         Sigar sigar = null;
         sigar = new Sigar();
